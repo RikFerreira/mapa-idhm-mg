@@ -1,6 +1,8 @@
 ---
 title: "Mapa do IDHM de Minas Gerais"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 code_folding: hide
 ---
 

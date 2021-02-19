@@ -1,0 +1,128 @@
+---
+title: "Mapa do IDHM de Minas Gerais"
+output: html_notebook
+code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(sf)
+library(patchwork)
+library(ggspatial)
+library(readxl)
+library(geobr)
+```
+
+```{r}
+uf <- read_state(showProgress = FALSE)
+mun <- read_municipality(showProgress = FALSE)
+```
+
+```{r}
+idhm <- read_xlsx("../data/Atlas 2013_municipal, estadual e Brasil.xlsx", sheet = 2) %>%
+    filter(ANO == 2010, UF == 31) %>%
+    select(code_muni = Codmun7, IDHM)
+
+head(idhm)
+```
+
+```{r}
+base <- inner_join(mun, idhm, "code_muni")
+
+head(base)
+```
+
+```{r}
+main_map <- base %>%
+    mutate(IDHM = cut(IDHM, quantile(IDHM, probs = seq(0, 1, by = .2)))) %>%
+    ggplot() +
+    geom_sf(aes(fill = IDHM), size = .5) +
+    scale_fill_brewer("IDH-M", palette = "OrRd") +
+    annotation_north_arrow(style = north_arrow_fancy_orienteering()) +
+    annotation_scale(pad_x = unit(140, "mm")) +
+    labs(caption = "Fonte: IPEA. 2010\nOrg.: ALVES, R. F. 2021")
+```
+
+```{r}
+context_map <- uf %>%
+    mutate(estados = ifelse(code_state == "31", "Minas Gerais", "Demais estados")) %>%
+    ggplot() +
+    geom_sf(aes(fill = estados)) +
+    scale_fill_manual("Estados", values = c("white", "firebrick3"))
+    # theme(
+    #     legend.title = element_blank()
+    # )
+```
+
+```{r}
+layout <- c(
+    area(1, 2, 1, 59),
+    area(2, 1, 41, 1),
+    area(2, 60, 41, 60),
+    area(42, 2, 42, 59),
+    area(3, 3, 40, 43),
+    # area(29, 4, 38, 14),
+    area(3, 45, 23, 58),
+    area(26, 45, 40, 58)
+)
+
+plot(layout)
+```
+
+```{r}
+patch <- plot_spacer() + plot_spacer() + plot_spacer() + plot_spacer() +
+    main_map + guide_area() + context_map +
+    plot_layout(guides = "collect", design = layout) &
+    theme_void() +
+    theme(
+        plot.background = element_rect(fill = "#efefee", size = 0),
+        panel.background = element_rect(fill = "#efefee", size = 0)
+        # panel.grid = element_line(color = "darkgray")
+    )
+
+patch
+```
+
+```{r}
+ggsave("../plots/plot.png", patch, device = "png", width = 297, height = 210, units = "mm")
+ggsave("../plots/plot.pdf", patch, device = "pdf", width = 297, height = 210, units = "mm")
+```
+
+
+
+
+
+
+
+
+<!-- function(layer, attr, feature) { -->
+<!--     bbox <- layer %>% -->
+<!--         filter(attr == feature) %>% -->
+<!--         st_bbox() %>% -->
+<!--         st_as_sfc() -->
+<!-- } -->
+<!-- bbox <- ufs %>% -->
+<!--     st_bbox() -->
+
+
+<!-- x <- abs(bbox$xmax - bbox$xmin) %>% unname() -->
+<!-- y <- abs(bbox$ymax - bbox$ymin) %>% unname() -->
+
+<!-- x <- ifelse(x > y, x, y) -->
+<!-- y <- ifelse(x > y, x, y) -->
+
+<!-- c <- bbox %>% -->
+<!--     st_as_sfc() %>% -->
+<!--     st_centroid() %>% -->
+<!--     st_coordinates() -->
+
+<!-- return <- c( -->
+<!--     "xmin" = c[1] - x/2, -->
+<!--     "ymin" = c[2] - y/2, -->
+<!--     "xmax" = c[1] + x/2, -->
+<!--     "ymax" = c[2] + y/2 -->
+<!-- ) -->
